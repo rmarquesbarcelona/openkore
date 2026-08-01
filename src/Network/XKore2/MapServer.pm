@@ -472,7 +472,7 @@ sub send_player_info {
 	my $data = undef;
 
 	# Send skill information
-	if($self->{packet_lut}{skills_list} eq "0B32") {
+	if (($self->{recvPacketParser}{packet_lut}{skills_list} || '') eq '0B32') {
 		foreach my $ID (@skillsID) {
 			$data .= pack('v V v3 C v',
 				$char->{skills}{$ID}{ID}, $char->{skills}{$ID}{targetType},
@@ -493,10 +493,11 @@ sub send_player_info {
 	$client->send($data);
 
 	# Send weapon/shield appearance
-	$data .= pack('C2 a4 C v2', 0xD7, 0x01, $char->{ID}, 2, $char->{weapon}, $char->{shield});
+	$client->send(pack('C2 a4 C v2', 0xD7, 0x01,
+		$char->{ID}, 2, $char->{weapon}, $char->{shield}));
 
 	# Send attack range
-	$data  = pack('C2 v', 0x3A, 0x01, $char->{attack_range});
+	$client->send(pack('C2 v', 0x3A, 0x01, $char->{attack_range}));
 
 	# More stats
 	$data  = pack('C2 v V', 0xB0, 0x00, 0, $char->{walk_speed} * 1000);		# Walk speed
@@ -545,8 +546,7 @@ sub send_player_info {
 	);
 
 	# Send status info
-	$data .= pack('v a4 v3 x', 0x119, $char->{ID}, $char->{opt1}, $char->{opt2}, $char->{option});
-	$client->send($data);
+	$data = pack('v a4 v3 x', 0x119, $char->{ID}, $char->{opt1}, $char->{opt2}, $char->{option});
 
 	if ($RunOnce) {
 		foreach my $ID (keys %{$char->{statuses}}) {
@@ -571,7 +571,8 @@ sub send_player_info {
 	$client->send($data) if (length($data) > 0);
 
 	# Send spirit sphere information
-	$data  = pack('C2 a4 v', 0xD0, 0x01, $char->{ID}, $char->{spirits}) if ($char->{spirits});
+	$data = undef;
+	$data .= pack('C2 a4 v', 0xD0, 0x01, $char->{ID}, $char->{spirits}) if ($char->{spirits});
 	# Send exp-required-to-level-up info
 	$data .= pack('C2 v V', 0xB1, 0x00, 22, $char->{exp_max});
 	$data .= pack('C2 v V', 0xB1, 0x00, 23, $char->{exp_job_max});
@@ -603,6 +604,7 @@ sub send_player_info {
 
 
 	# # Send info about surrounding players
+	$data = undef;
 	foreach my $player (@{$playersList->getItems()}) {
 		my $coords = '';
 		shiftPack(\$coords, $player->{pos_to}{x}, 10);
@@ -623,6 +625,31 @@ sub send_player_info {
 sub send_inventory {
 	my ($self, $client, $char) = @_;
 	my $data = undef;
+
+	# Modern item-list records contain fields that the legacy 00A3/00A4
+	# reconstruction below cannot represent. Replay the snapshot received
+	# from the real server to preserve equipment, cards and random options.
+	if (UNIVERSAL::isa($char, 'Actor::You')
+		&& $char->{xkore2_inventory_complete}
+		&& ref $char->{xkore2_inventory_packets} eq 'ARRAY'
+		&& @{$char->{xkore2_inventory_packets}}) {
+		$client->send(join('', @{$char->{xkore2_inventory_packets}}));
+		$client->send(pack('C2 v', 0x3C, 0x01, $char->{arrow})) if ($char->{arrow});
+		return;
+	}
+
+	if (UNIVERSAL::isa($char, 'Actor::You')) {
+		my @captured = grep { defined $_ && length $_ } (
+			$char->{xkore2_inventory_stackable_packet},
+			$char->{xkore2_inventory_nonstackable_packet},
+		);
+		if (@captured) {
+			$client->send(join('', @captured));
+			$client->send(pack('C2 v', 0x3C, 0x01, $char->{arrow})) if ($char->{arrow});
+			return;
+		}
+	}
+
 	# Send cart information includeing the items
 	if (!$client->{session}{dummy} && $char->cartActive && $RunOnce) {
 		$data = pack('C2 v2 V2', 0x21, 0x01, $char->cart->items, $char->cart->items_max, ($char->cart->{weight} * 10), ($char->cart->{weight_max} * 10));
