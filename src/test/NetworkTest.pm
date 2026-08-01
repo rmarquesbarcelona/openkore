@@ -50,7 +50,6 @@ sub start {
 		twRO
 		Zero
 		kRO_RagexeRE_0
-		kRO_RagexeRE_2020_04_01b
 	)) {
 		subtest "serverType $serverType" => sub {
 			for my $module (keys %tests) {
@@ -68,34 +67,6 @@ sub start {
 							is($_, $handler->[0], 'matches');
 							done_testing();
 						}}
-					}
-
-					if ($module eq 'Network::Send' && $serverType eq 'kRO_RagexeRE_2020_04_01b') {
-						subtest '0ACF 32-byte Rijndael password' => sub {
-							my $password = 'xkore2-modern';
-							my $key = pack('C32', (
-								0x06, 0xA9, 0x21, 0x40, 0x36, 0xB8, 0xA1, 0x5B,
-								0x51, 0x2E, 0x03, 0xD5, 0x34, 0x12, 0x00, 0x06,
-								0x06, 0xA9, 0x21, 0x40, 0x36, 0xB8, 0xA1, 0x5B,
-								0x51, 0x2E, 0x03, 0xD5, 0x34, 0x12, 0x00, 0x06,
-							));
-							my $chain = pack('C32', (
-								0x3D, 0xAF, 0xBA, 0x42, 0x9D, 0x9E, 0xB4, 0x30,
-								0xB4, 0x22, 0xDA, 0x80, 0x2C, 0x9F, 0xAC, 0x41,
-								0x3D, 0xAF, 0xBA, 0x42, 0x9D, 0x9E, 0xB4, 0x30,
-								0xB4, 0x22, 0xDA, 0x80, 0x2C, 0x9F, 0xAC, 0x41,
-							));
-							my $rijndael = Utils::Rijndael->new;
-							$rijndael->MakeKey($key, $chain, 32, 32);
-							my $args = {
-								password_rijndael => $rijndael->Encrypt(
-									pack('a32', $password), undef, 32, 0
-								),
-							};
-							$instance->parse_master_login($args);
-							is($args->{password}, $password, 'decrypts the client password');
-							done_testing();
-						};
 					}
 
 					# do not test kRO tree further
@@ -132,6 +103,35 @@ sub start {
 			done_testing();
 		}
 	}
+
+	subtest '0ACF 32-byte Rijndael password' => sub {
+		my $instance = Network::Send->create(undef, 'kRO_RagexeRE_2020_04_01b');
+		ok($instance, 'create modern kRO sender');
+
+		my $password = 'xkore2-modern';
+		my $key = pack('C32', (
+			0x06, 0xA9, 0x21, 0x40, 0x36, 0xB8, 0xA1, 0x5B,
+			0x51, 0x2E, 0x03, 0xD5, 0x34, 0x12, 0x00, 0x06,
+			0x06, 0xA9, 0x21, 0x40, 0x36, 0xB8, 0xA1, 0x5B,
+			0x51, 0x2E, 0x03, 0xD5, 0x34, 0x12, 0x00, 0x06,
+		));
+		my $chain = pack('C32', (
+			0x3D, 0xAF, 0xBA, 0x42, 0x9D, 0x9E, 0xB4, 0x30,
+			0xB4, 0x22, 0xDA, 0x80, 0x2C, 0x9F, 0xAC, 0x41,
+			0x3D, 0xAF, 0xBA, 0x42, 0x9D, 0x9E, 0xB4, 0x30,
+			0xB4, 0x22, 0xDA, 0x80, 0x2C, 0x9F, 0xAC, 0x41,
+		));
+		my $rijndael = Utils::Rijndael->new;
+		$rijndael->MakeKey($key, $chain, 32, 32);
+		my $args = {
+			password_rijndael => $rijndael->Encrypt(
+				pack('a32', $password), undef, 32, 0
+			),
+		};
+		$instance->parse_master_login($args);
+		is($args->{password}, $password, 'decrypts the client password');
+		done_testing();
+	};
 }
 
 sub reduce_struct {
