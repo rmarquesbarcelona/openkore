@@ -30,4 +30,6 @@ Task/AgentDecision.pm
 TaskManager.pm
 Translation.pm
 Utils.pm
+World/LegacyBridge.pm
+World/Model.pm
 XSTools.pm
