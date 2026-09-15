@@ -34,6 +34,7 @@ skillnametable.txt
 skillssp.txt
 SkillTest.pm
 TeleportFallbackTest.pm
+TaskAgentDecisionTest.pm
 TaskChainedTest.pm
 TaskManagerTest.pm
 TaskTalkNPCTest.pm
