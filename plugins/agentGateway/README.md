@@ -79,6 +79,32 @@ Agent::Gateway::resolve($request_id, {
 });
 ```
 
+## TaskManager integration
+
+`Task::AgentDecision` wraps the same request lifecycle as a cooperative OpenKore task. It can hold only a strategic mutex while the agent thinks, leaving network handling, reflexes, combat safety and unrelated tasks free to continue.
+
+```perl
+use Task::AgentDecision;
+
+my $decision_task = Task::AgentDecision->new(
+    mutexes => ['strategy'],
+    request => {
+        type    => 'task_blocked',
+        reason  => 'route_strategy_exhausted',
+        timeout => 10,
+    },
+    fallback => sub {
+        return { action => 'safe_abort' };
+    },
+);
+
+$taskManager->add($decision_task);
+```
+
+When the external answer arrives, the task stores the decision and finishes on its next normal `TaskManager` iteration. If the deadline expires without a fallback, the task finishes with the explicit `agent_timeout` error. Stopping the task cancels its still-pending agent request.
+
+This is the intended mechanism for suspending **strategic** work without freezing OpenKore itself.
+
 ## Hooks
 
 A transport subscribes to these hooks:
@@ -122,7 +148,7 @@ Agent::Gateway::request(
 
 The gateway never blocks the OpenKore main loop. A pending request is simply state. Reflexes, network processing, combat safety logic and unrelated tasks continue normally while the external agent deliberates.
 
-Timeouts are checked from `mainLoop_pre` by this plugin. A request can therefore wait asynchronously without polling the complete OpenKore state from the agent side.
+Timeouts are checked from `mainLoop_post` by this plugin. That ordering is deliberate: inbound Bus messages are processed first, so a response already waiting on the transport can resolve the request before its deadline is evaluated in the same loop iteration.
 
 ## Optional Bus transport
 
