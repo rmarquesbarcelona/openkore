@@ -19,8 +19,11 @@ Plugins::register(
 	\&onReload,
 );
 
+# Run deadline processing after mainLoop_initialized(). This lets inbound Bus
+# responses resolve pending requests before a deadline is evaluated in the same
+# loop iteration.
 my $hooks = Plugins::addHooks(
-	['mainLoop_pre', \&onMainLoop, undef],
+	['mainLoop_post', \&onMainLoop, undef],
 );
 
 sub onMainLoop {
