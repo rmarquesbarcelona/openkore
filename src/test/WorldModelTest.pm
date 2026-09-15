@@ -89,7 +89,7 @@ sub testLiveActorReferences {
 	my $snapshot = World::Model::snapshot();
 	is($snapshot->{actors}{monsters}{items}[0]{hp}, 42, 'field mutations are visible without copying every packet');
 	is($snapshot->{actors}{monsters}{items}[0]{position}{x}, 9, 'position mutations are visible through live actor reference');
-	is(World::Model::generation(), $generation, 'ordinary actor field mutation does not require structural generation churn');
+	is(World::Model::generation(), $generation, 'structural generation intentionally ignores live actor field churn');
 }
 
 1;
