@@ -2,6 +2,8 @@ functions.pl
 Actor.pm
 ActorList.pm
 AI.pm
+Agent/Gateway.pm
+Agent/WorldState.pm
 Branches.txt
 ChatQueue.pm
 Commands.pm
