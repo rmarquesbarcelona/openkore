@@ -26,6 +26,7 @@ Plugins.pm
 Settings.pm
 Skill.pm
 Task.pm
+Task/AgentDecision.pm
 TaskManager.pm
 Translation.pm
 Utils.pm
