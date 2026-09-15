@@ -63,13 +63,14 @@ sub testActorRegistry {
 sub testSnapshotOrderingAndLimits {
 	World::Model::reset();
 	my $self = actor(id => 1, type => 'You', name => 'Self', x => 0, y => 0);
+	my $far = actor(id => 11, name => 'Far', x => 20, y => 20);
+	my $near = actor(id => 12, name => 'Near', x => 1, y => 1);
+	my $middle = actor(id => 13, name => 'Middle', x => 5, y => 5);
 	World::Model::setSelf($self);
-	World::Model::upsertActor('monsters', actor(id => 11, name => 'Far', x => 20, y => 20));
-	World::Model::upsertActor('monsters', actor(id => 12, name => 'Near', x => 1, y => 1));
-	World::Model::upsertActor('monsters', actor(id => 13, name => 'Middle', x => 5, y => 5));
+	World::Model::upsertActor('monsters', $far);
+	World::Model::upsertActor('monsters', $near);
+	World::Model::upsertActor('monsters', $middle);
 
-	# Keep strong references: World::Model intentionally stores weak actor refs.
-	my @strong = @{World::Model::actorRefs('monsters')};
 	my $snapshot = World::Model::snapshot(actor_limit => 2);
 	is($snapshot->{actors}{monsters}{total_count}, 3, 'snapshot reports total actor count');
 	ok($snapshot->{actors}{monsters}{truncated}, 'snapshot marks a limited collection as truncated');
