@@ -1,5 +1,6 @@
 ActorListTest.pm
 AgentGatewayTest.pm
+ArchitectureBoundaryTest.pm
 bus-client-test.pl
 CallbackListTest.pm
 cities.txt
