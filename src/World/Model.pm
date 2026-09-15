@@ -11,7 +11,7 @@ package World::Model;
 use strict;
 use warnings;
 use Time::HiRes qw(time);
-use Scalar::Util qw(weaken blessed refaddr);
+use Scalar::Util qw(weaken refaddr);
 
 my @ACTOR_CATEGORIES = qw(monsters players npcs items portals pets slaves elementals);
 
@@ -42,6 +42,10 @@ sub _touch {
 	$state{updated_at} = time();
 }
 
+# Structural/runtime generation. Actor field mutations are intentionally not
+# counted because actor references are live. Consumers that need current HP,
+# position, name, etc. should read a fresh snapshot rather than use generation
+# as a high-frequency change token.
 sub generation {
 	return $state{generation};
 }
