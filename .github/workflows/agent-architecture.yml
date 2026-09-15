@@ -9,7 +9,9 @@ on:
       - 'src/World/**'
       - 'src/Task/AgentDecision.pm'
       - 'plugins/agentGateway/**'
+      - 'plugins/worldModel/**'
       - 'src/test/AgentGatewayTest.pm'
+      - 'src/test/ArchitectureBoundaryTest.pm'
       - 'src/test/TaskAgentDecisionTest.pm'
       - 'src/test/WorldModelTest.pm'
       - 'src/test/WorldLegacyBridgeTest.pm'
@@ -20,7 +22,9 @@ on:
       - 'src/World/**'
       - 'src/Task/AgentDecision.pm'
       - 'plugins/agentGateway/**'
+      - 'plugins/worldModel/**'
       - 'src/test/AgentGatewayTest.pm'
+      - 'src/test/ArchitectureBoundaryTest.pm'
       - 'src/test/TaskAgentDecisionTest.pm'
       - 'src/test/WorldModelTest.pm'
       - 'src/test/WorldLegacyBridgeTest.pm'
@@ -55,3 +59,7 @@ jobs:
       - name: Run Globals-independent world-model tests
         run: |
           perl -Isrc -Isrc/test -Isrc/deps -MTest::More=no_plan -MWorldModelTest -e 'WorldModelTest::start()'
+
+      - name: Enforce architecture dependency boundary
+        run: |
+          perl src/test/unittests.pl ArchitectureBoundaryTest
