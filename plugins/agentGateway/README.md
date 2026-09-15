@@ -7,23 +7,67 @@ The core design rule is: **OpenKore keeps acting; the external agent is only ask
 ## Architecture
 
 ```text
-External agent
-     ^   |
-     |   | decision
-     |   v
-Agent::Gateway
-     ^   |
-     |   | callbacks / intents
-     |   v
-OpenKore tasks, AI and plugins
-     |
-     v
-Ragnarok environment
+                          External agent
+                               ^   |
+                       request |   | decision
+                               |   v
+                        Agent::Gateway
+                               ^
+                               |
+                        Agent::WorldState
+                               |
+                               v
+                         World::Model
+                         ^           ^
+                         |           |
+             legacy compatibility   | new code reads here
+                         |
+                  World::LegacyBridge
+                         ^
+                         |
+                      Globals
+                         ^
+                         |
+              existing OpenKore core
 ```
 
-`Agent::Gateway` does not depend on `Globals`, Bus, JSON, HTTP, WebSocket, or a specific model. It emits OpenKore plugin hooks. `Agent::WorldState` is the only compatibility adapter that reads legacy global state and turns it into plain agent-facing data.
+`Agent::Gateway` does not depend on `Globals`, Bus, JSON, HTTP, WebSocket, or a particular model provider.
 
-This intentionally isolates the old global-state architecture instead of spreading it into new agent code.
+More importantly, agent work is no longer the only reason for the new world-state layer. `World::Model` is a **core read model** with no dependency on `Globals`, networking, AI, plugins or agent code. It is intended to become the common state-query surface for new OpenKore code as legacy consumers are migrated.
+
+`World::LegacyBridge` is the compatibility edge. It is deliberately the only new world-model module that imports `Globals`.
+
+The dependency rule is therefore:
+
+```text
+GOOD
+legacy state -> World::LegacyBridge -> World::Model -> consumers
+
+BAD
+consumer -> Globals
+```
+
+The bridge subscribes directly to the existing `ActorList` add/remove/clear events. `World::Model` keeps weak references to the live Actor objects, so ordinary actor mutations such as movement, HP and names remain visible without copying the entire world on every packet. Runtime scalars such as current map, connection state and TaskManager summary are synchronized at decision-relevant lifecycle boundaries.
+
+This turns the old global-state architecture into a compatibility source instead of a dependency that new code must inherit.
+
+## World-model migration rule
+
+New code that needs world information should use `World::Model`, not `Globals`.
+
+Examples:
+
+```perl
+use World::Model;
+
+my $snapshot = World::Model::snapshot(actor_limit => 32);
+my $poring = World::Model::findActorByName('Poring', 'monsters');
+my $monsters = World::Model::actorRefs('monsters');
+```
+
+If a piece of legacy state is not yet represented in the model, extend `World::Model` and feed it through `World::LegacyBridge`. Do not add another direct `Globals` dependency to agent/new architecture code.
+
+`World::Model::generation()` is a structural/runtime generation counter. Actor objects are intentionally live references, so high-frequency field changes do not increment that counter; a fresh `snapshot()` always reads the current actor fields.
 
 ## Escalating a decision
 
@@ -129,11 +173,9 @@ Agent::Gateway::notify(
 );
 ```
 
-## World-state boundary
+## Agent world-state facade
 
-By default a request gets a snapshot from `Agent::WorldState`. The snapshot contains plain Perl hashes/arrays/scalars with connection state, map, self, TaskManager summary and nearby actors.
-
-Agent-facing code should **not** import `Globals`. If more world information is required, add it to `Agent::WorldState` instead. That preserves one explicit compatibility boundary around the legacy global-state architecture.
+By default a request gets a snapshot from `Agent::WorldState`. That module no longer imports `Globals`; it delegates to the core `World::Model`.
 
 A caller may also provide a purpose-built context directly:
 
@@ -180,3 +222,9 @@ An external agent resolves a request by sending `AGENT_RESOLVE` with the same pr
 ```
 
 `JSON::PP` is loaded optionally by the transport. If it is unavailable, only the Bus adapter is disabled; `Agent::Gateway` and in-process transports continue to work normally.
+
+## Tests and CI
+
+The branch contains focused tests for the pure world model, the legacy ActorList bridge, gateway request lifecycle and TaskManager decision integration. A small `Agent architecture` workflow also syntax-checks the Globals-independent boundary on Perl 5.12 and current Perl.
+
+The existing repository-wide XSTools workflow remains unchanged.
