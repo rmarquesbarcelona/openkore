@@ -123,3 +123,34 @@ Agent::Gateway::request(
 The gateway never blocks the OpenKore main loop. A pending request is simply state. Reflexes, network processing, combat safety logic and unrelated tasks continue normally while the external agent deliberates.
 
 Timeouts are checked from `mainLoop_pre` by this plugin. A request can therefore wait asynchronously without polling the complete OpenKore state from the agent side.
+
+## Optional Bus transport
+
+`busTransport.pl` adapts the gateway to OpenKore's existing Bus when Bus is enabled. The gateway itself remains unaware of Bus.
+
+Because the legacy Bus only transports scalar key/value arguments, the adapter places the structured agent envelope in a JSON string named `payload` and adds:
+
+```text
+protocol = openkore-agent-v1
+```
+
+OpenKore broadcasts these Bus message IDs:
+
+- `AGENT_REQUEST`
+- `AGENT_NOTIFY`
+- `AGENT_CANCELLED`
+- `AGENT_TIMEOUT`
+
+An external agent resolves a request by sending `AGENT_RESOLVE` with the same protocol field and a JSON payload shaped like:
+
+```json
+{
+  "request_id": "agent-...",
+  "decision": {
+    "action": "search_map",
+    "radius": 40
+  }
+}
+```
+
+`JSON::PP` is loaded optionally by the transport. If it is unavailable, only the Bus adapter is disabled; `Agent::Gateway` and in-process transports continue to work normally.
