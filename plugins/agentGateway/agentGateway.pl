@@ -2,8 +2,8 @@
 # OpenKore agent gateway lifecycle plugin
 #
 # Keeps Agent::Gateway transport-agnostic while giving it a main-loop tick.
-# Agent transports should subscribe to agent/request, agent/notify,
-# agent/cancelled, agent/timeout and call Agent::Gateway::resolve().
+# World::LegacyBridge is the isolated compatibility edge from Globals into
+# the new core World::Model.
 #########################################################################
 package agentGateway;
 
@@ -11,6 +11,7 @@ use strict;
 use warnings;
 use Plugins;
 use Agent::Gateway;
+use World::LegacyBridge;
 
 Plugins::register(
 	'agentGateway',
@@ -19,19 +20,33 @@ Plugins::register(
 	\&onReload,
 );
 
-# Run deadline processing after mainLoop_initialized(). This lets inbound Bus
-# responses resolve pending requests before a deadline is evaluated in the same
-# loop iteration.
+# Actor collections are synchronized by ActorList callbacks registered by the
+# legacy bridge. Runtime scalars (self/map/connection/task summary) are synced
+# at decision-relevant boundaries. Deadline processing stays in mainLoop_post,
+# after Bus input, so a queued agent response wins over a same-tick timeout.
 my $hooks = Plugins::addHooks(
-	['mainLoop_post', \&onMainLoop, undef],
+	['initialized', \&onInitialized, undef],
+	['AI_start', \&onDecisionBoundary, undef],
+	['Network::Receive::map_changed', \&onDecisionBoundary, undef],
+	['mainLoop_post', \&onMainLoopPost, undef],
 );
 
-sub onMainLoop {
+sub onInitialized {
+	World::LegacyBridge::initialize();
+}
+
+sub onDecisionBoundary {
+	World::LegacyBridge::syncRuntime() if World::LegacyBridge::isInitialized();
+}
+
+sub onMainLoopPost {
+	World::LegacyBridge::syncRuntime() if World::LegacyBridge::isInitialized();
 	Agent::Gateway::iterate();
 }
 
 sub onUnload {
 	Plugins::delHooks($hooks) if $hooks;
+	World::LegacyBridge::shutdown() if World::LegacyBridge::isInitialized();
 	Agent::Gateway::reset();
 }
 
