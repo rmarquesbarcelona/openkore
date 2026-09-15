@@ -1,4 +1,5 @@
 ActorListTest.pm
+AgentGatewayTest.pm
 bus-client-test.pl
 CallbackListTest.pm
 cities.txt
