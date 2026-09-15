@@ -1,4 +1,6 @@
 ActorListTest.pm
+AgentGatewayTest.pm
+ArchitectureBoundaryTest.pm
 bus-client-test.pl
 CallbackListTest.pm
 cities.txt
@@ -33,9 +35,12 @@ skillnametable.txt
 skillssp.txt
 SkillTest.pm
 TeleportFallbackTest.pm
+TaskAgentDecisionTest.pm
 TaskChainedTest.pm
 TaskManagerTest.pm
 TaskTalkNPCTest.pm
 TaskWithSubtaskTest.pm
 unittests.pl
 WhirlpoolTest.pm
+WorldLegacyBridgeTest.pm
+WorldModelTest.pm

@@ -2,6 +2,8 @@ functions.pl
 Actor.pm
 ActorList.pm
 AI.pm
+Agent/Gateway.pm
+Agent/WorldState.pm
 Branches.txt
 ChatQueue.pm
 Commands.pm
@@ -24,7 +26,10 @@ Plugins.pm
 Settings.pm
 Skill.pm
 Task.pm
+Task/AgentDecision.pm
 TaskManager.pm
 Translation.pm
 Utils.pm
+World/LegacyBridge.pm
+World/Model.pm
 XSTools.pm
