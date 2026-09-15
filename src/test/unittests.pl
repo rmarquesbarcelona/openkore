@@ -21,7 +21,7 @@ my @tests = qw(
 	CastConditionsTest
 	TeleportFallbackTest
 	ShopTest
-	TaskManagerTest TaskWithSubtaskTest TaskChainedTest
+	TaskManagerTest TaskWithSubtaskTest TaskChainedTest TaskAgentDecisionTest
 	TaskTalkNPCTest
 	PluginsHookTest AgentGatewayTest
 	FileParsersTest
