@@ -1,0 +1,57 @@
+name: Agent architecture
+
+on:
+  push:
+    branches:
+      - 'agent/**'
+    paths:
+      - 'src/Agent/**'
+      - 'src/World/**'
+      - 'src/Task/AgentDecision.pm'
+      - 'plugins/agentGateway/**'
+      - 'src/test/AgentGatewayTest.pm'
+      - 'src/test/TaskAgentDecisionTest.pm'
+      - 'src/test/WorldModelTest.pm'
+      - 'src/test/WorldLegacyBridgeTest.pm'
+      - '.github/workflows/agent-architecture.yml'
+  pull_request:
+    paths:
+      - 'src/Agent/**'
+      - 'src/World/**'
+      - 'src/Task/AgentDecision.pm'
+      - 'plugins/agentGateway/**'
+      - 'src/test/AgentGatewayTest.pm'
+      - 'src/test/TaskAgentDecisionTest.pm'
+      - 'src/test/WorldModelTest.pm'
+      - 'src/test/WorldLegacyBridgeTest.pm'
+      - '.github/workflows/agent-architecture.yml'
+
+jobs:
+  world-model:
+    name: world model (Perl ${{ matrix.perl }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        perl:
+          - '5.12'
+          - 'latest'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+
+      - name: Syntax check independent world-model modules
+        run: |
+          perl -Isrc -Isrc/deps -c src/World/Model.pm
+          perl -Isrc -Isrc/deps -c src/World/LegacyBridge.pm
+          perl -Isrc -Isrc/deps -c src/Agent/WorldState.pm
+
+      - name: Run Globals-independent world-model tests
+        run: |
+          perl -Isrc -Isrc/test -Isrc/deps -MTest::More=no_plan -MWorldModelTest -e 'WorldModelTest::start()'
