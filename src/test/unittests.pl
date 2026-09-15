@@ -23,7 +23,7 @@ my @tests = qw(
 	ShopTest
 	TaskManagerTest TaskWithSubtaskTest TaskChainedTest TaskAgentDecisionTest
 	TaskTalkNPCTest
-	PluginsHookTest AgentGatewayTest
+	PluginsHookTest AgentGatewayTest WorldModelTest
 	FileParsersTest
 	DynamicPortalGroupsTest
 	NetworkTest
